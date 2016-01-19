@@ -1,68 +1,109 @@
 var allAudioPaths = [],
-    PATH_URL = 'media/';
+	allImagePaths = []
+    PATH_URL = 'media/',
+	audio = document.getElementById("audio"),
+	image = document.getElementById("image"),
+	ul = document.getElementById("listOfMusic"),
+	progress = document.getElementById("progress"),
+	audioProgress = 0,
+	audioCurrentTime = 0,
+	progressMax = 200,
+	currentSongPlaying = 0;
+	
+audio.addEventListener("canplay", playAudio);
 
-var getData = $.get( "server.php", 
-	success
-);
+audio.addEventListener("progress", progressBar);
+
+audio.addEventListener('durationchange', function(e) {
+    progressMax = e.target.duration;
+});
+
+function playAudio(ev){
+	ev.target.play();
+}
+function progressBar(){
+	audioCurrentTime = (audioProgress/progressMax) * 100;
+	progress.style.width = "" + audioCurrentTime + "%";
+}
+
+request.get("server.php", {}, success);
 
 function success(data){
-	//debugger;
 	data = JSON.parse(data);
 	addDataToDom(data);
 }
 
 function addDataToDom(data){
-	var _id = 1;
-	
+	var _id = 0;
 	for(element in data){
 		var album = data[element]['album'],
-		artist = data[element]['artist'],
-		img = data[element]['image'],
-		song = data[element]['song'];
+			artist = data[element]['artist'],
+			img = data[element]['image'],
+			song = data[element]['song'];
 		
 		
-		allAudioPaths.push(data[element]['path']);
+		allAudioPaths.push(PATH_URL + data[element]['path']);
+		allImagePaths.push(PATH_URL + img);
 		
-		dom = document.createElement('div'),
-		image = document.createElement('img'),
-		audio = document.createElement('audio'),
-		audioSource = document.createElement('source'),
-		container = document.createElement('div'),
-		button = document.createElement('button');
+		var info = document.createElement('span'),
+			container = document.createElement('li'),
+			playButton = document.createElement('button'),
+			stopButton = document.createElement('button');
 		
-		dom.innerHTML += album;
-		dom.innerHTML += song;
+		info.innerHTML += (_id + 1) + ". " + album + " - " + song;;
+		info.className += " col-md-8";
 		
-		image.src = PATH_URL + img;
-		image.style.width = 200 + 'px';
-		image.style.height = 200 + 'px';
+		playButton.innerHTML = 'Play';
+		playButton.value = _id;
+		playButton.className += "";
+		playButton.className += "pull-right glyphicon glyphicon glyphicon-play";
 		
-		//audioSource.src = PATH_URL + audioPath;
-		audioSource.type = 'audio/mpeg';
-		audio.id = 'song' + _id;
-		audio.appendChild(audioSource);
-		audio.addEventListener("canplay", playAudio);
+		stopButton.innerHTML = 'Pause';
+		stopButton.value = _id++;
+		stopButton.className += "Pause ";
+		stopButton.className += "pull-right glyphicon glyphicon-pause";
 		
-		button.innerHTML = 'Play';
-		button.style.display = 'block';
-		button.value = _id++;
 		
-		document.body.appendChild(container);
-		container.appendChild(dom);
-		container.appendChild(image);
-		
-		container.appendChild(button);
-		container.appendChild(audio);
+		ul.appendChild(container);
+		container.appendChild(info);
+		container.appendChild(playButton);
+		container.appendChild(stopButton);
 	}
 }
-//debugger;
+
+ 
 document.body.addEventListener("click", startPlaying);
 
-function playAudio(ev){
-	ev.target.play();
-}
+var isStarted = false,
+	audioInterval;
 
 function startPlaying(ev){
-	var audioElement = ev.target.nextSibling;
-	audioElement.src = PATH_URL + allAudioPaths[ev.target.value];
+	if(ev.target.tagName == "BUTTON"){
+		
+		if(ev.target.innerHTML.indexOf("Play") != -1){
+			image.src = allImagePaths[ev.target.value];
+			audio.src = allAudioPaths[ev.target.value];
+			
+			if(currentSongPlaying != ev.target.value){
+				audioProgress = 0;
+			}
+			
+			currentSongPlaying = ev.target.value;
+			audio.currentTime = audioProgress;
+			
+			if(!isStarted){
+				audioInterval = setInterval(function(){
+				audioProgress += 1;
+				}, 1000);
+				isStarted = true;
+			}
+			
+			audio.play();
+		} else {
+			isStarted = false;
+			audio.pause();
+			clearInterval(audioInterval);
+		}
+	}
 }
+
